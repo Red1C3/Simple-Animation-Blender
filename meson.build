@@ -1,0 +1,6 @@
+project('simple-animation-blender','cpp')
+srcAssembler=run_command('srcAssembler.sh')
+sources=srcAssembler.stdout().strip().split('\n')
+inc_dir=include_directories('include')
+spdlog=dependency('spdlog')
+executable('simple-animation-blender',sources,include_directories:[inc_dir],dependencies:[spdlog])
