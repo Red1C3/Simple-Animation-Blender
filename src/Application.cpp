@@ -14,7 +14,12 @@ void Application::init(char *meshPath)
     createWindow(720, 1280);
     createVkInstance();
     createPhysicalDevice();
-    //TODO create logical device
+    createSurface();
+    createQueuesFamilies();
+    createLogicalDevice();
+    //TODO create swapchain
+    //TODO create command pool
+    //TODO create descriptor pool
 }
 void Application::createWindow(int height, int width)
 {
@@ -40,6 +45,7 @@ void Application::createVkInstance()
     VkInstanceCreateInfo createInfo{};
     uint32_t glfwExtensionCount;
     createInfo.ppEnabledExtensionNames = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+    createInfo.enabledExtensionCount = glfwExtensionCount;
     const char *validationLayer = "VK_LAYER_KHRONOS_validation";
     if (debug)
     {
@@ -64,7 +70,7 @@ void Application::createPhysicalDevice()
     vkEnumeratePhysicalDevices(vkInstance, &physicalDevicesCount, nullptr);
     vector<VkPhysicalDevice> physicalDevices(physicalDevicesCount);
     vkEnumeratePhysicalDevices(vkInstance, &physicalDevicesCount, physicalDevices.data());
-    VkPhysicalDevice integratedFallback;
+    VkPhysicalDevice integratedFallback = VK_NULL_HANDLE;
     for (VkPhysicalDevice device : physicalDevices)
     {
         VkPhysicalDeviceProperties properties;
@@ -86,8 +92,102 @@ void Application::createPhysicalDevice()
     LOG("Warning: using integrated GPU becuz no discrete was found");
     physicalDevice = integratedFallback;
 }
+void Application::createQueuesFamilies()
+{
+    uint32_t queueFamiliesCount;
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, nullptr);
+    vector<VkQueueFamilyProperties> queueFamiliesProperties(queueFamiliesCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamiliesCount, queueFamiliesProperties.data());
+    for (uint32_t i = 0; i < queueFamiliesProperties.size(); ++i)
+    {
+        bool isGraphicsQueue = false;
+        VkBool32 isPresentQueue = VK_FALSE;
+        if (queueFamiliesProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            isGraphicsQueue = true;
+        }
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &isPresentQueue);
+        if (isPresentQueue && isGraphicsQueue)
+        {
+            graphicsQueueFamilyIndex = i;
+            presentQueueFamilyIndex = i;
+            graphicsQueuesCount = queueFamiliesProperties[i].queueCount;
+            presentQueuesCount = queueFamiliesProperties[i].queueCount;
+            sameQueueForGraphicsAndPresent = true;
+            return;
+        }
+    }
+    for (uint32_t i = 0; i < queueFamiliesProperties.size(); ++i)
+    {
+        if (queueFamiliesProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+        {
+            graphicsQueueFamilyIndex = i;
+            graphicsQueuesCount = queueFamiliesProperties[i].queueCount;
+        }
+        VkBool32 isPresentQueue = VK_FALSE;
+        vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, surface, &isPresentQueue);
+        if (isPresentQueue)
+        {
+            presentQueueFamilyIndex = i;
+            presentQueuesCount = queueFamiliesProperties[i].queueCount;
+        }
+    }
+}
+void Application::createSurface()
+{
+    if (glfwCreateWindowSurface(vkInstance, window, ALLOCATOR, &surface) != VK_SUCCESS)
+    {
+        ERR("Failed to obtain GLFW surface");
+    }
+}
+void Application::createLogicalDevice()
+{
+    vector<VkDeviceQueueCreateInfo> queuesCreateInfo;
+    if (sameQueueForGraphicsAndPresent)
+    {
+        queuesCreateInfo.resize(1);
+    }
+    else
+    {
+        queuesCreateInfo.resize(2);
+    }
+    vector<float> graphicsPriorities, presentPriorities;
+    for (uint32_t i = 0; i < queuesCreateInfo.size(); ++i)
+    {
+        queuesCreateInfo[i].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        if (i == 0)
+        {
+            queuesCreateInfo[i].queueFamilyIndex = graphicsQueueFamilyIndex;
+            queuesCreateInfo[i].queueCount = graphicsQueuesCount;
+            graphicsPriorities.resize(graphicsQueuesCount);
+            queuesCreateInfo[i].pQueuePriorities = graphicsPriorities.data();
+        }
+        else
+        {
+            queuesCreateInfo[i].queueFamilyIndex = presentQueueFamilyIndex;
+            queuesCreateInfo[i].queueCount = presentQueuesCount;
+            presentPriorities.resize(presentQueuesCount);
+            queuesCreateInfo[i].pQueuePriorities = presentPriorities.data();
+        }
+    }
+    VkDeviceCreateInfo createInfo{};
+    createInfo.enabledExtensionCount = 1;
+    createInfo.enabledLayerCount = 0;
+    createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+    const char *swapchainExt = VK_KHR_SWAPCHAIN_EXTENSION_NAME;
+    createInfo.ppEnabledExtensionNames = &swapchainExt;
+    createInfo.queueCreateInfoCount = queuesCreateInfo.size();
+    createInfo.pQueueCreateInfos = queuesCreateInfo.data();
+    if (vkCreateDevice(physicalDevice, &createInfo, ALLOCATOR, &device) != VK_SUCCESS)
+    {
+        ERR("Failed to create logical device");
+    }
+    LOG("Created logical device successfully");
+}
 void Application::terminate()
 {
+    vkDestroyDevice(device, ALLOCATOR);
+    vkDestroySurfaceKHR(vkInstance, surface, ALLOCATOR);
     vkDestroyInstance(vkInstance, ALLOCATOR);
     glfwDestroyWindow(window);
     glfwTerminate();
