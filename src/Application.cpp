@@ -17,7 +17,7 @@ void Application::init(char *meshPath)
     createSurface();
     createQueuesFamilies();
     createLogicalDevice();
-    //TODO create swapchain
+    swapchain = createSwapchain();
     //TODO create command pool
     //TODO create descriptor pool
 }
@@ -139,6 +139,18 @@ void Application::createSurface()
     {
         ERR("Failed to obtain GLFW surface");
     }
+    if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &surfaceCapabilities) != VK_SUCCESS)
+    {
+        ERR("Failed to get surface capabilities");
+    }
+    uint32_t formatsCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, nullptr);
+    vector<VkSurfaceFormatKHR> formats(formatsCount);
+    if (vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, formats.data()) != VK_SUCCESS)
+    {
+        ERR("Failed to get surface formats");
+    }
+    surfaceFormat = formats[0];
 }
 void Application::createLogicalDevice()
 {
@@ -184,8 +196,37 @@ void Application::createLogicalDevice()
     }
     LOG("Created logical device successfully");
 }
+VkSwapchainKHR Application::createSwapchain(VkSwapchainKHR oldSwapchain)
+{
+    VkSwapchainKHR swapchain;
+    VkSwapchainCreateInfoKHR createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    createInfo.surface = surface;
+    createInfo.minImageCount = surfaceCapabilities.minImageCount;
+    createInfo.imageFormat = surfaceFormat.format;
+    createInfo.imageColorSpace = surfaceFormat.colorSpace;
+    createInfo.imageExtent = surfaceCapabilities.currentExtent;
+    createInfo.imageArrayLayers = 1;
+    createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.preTransform = surfaceCapabilities.currentTransform;
+    createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    createInfo.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    createInfo.clipped = VK_FALSE;
+    createInfo.oldSwapchain = oldSwapchain;
+    if (vkCreateSwapchainKHR(device, &createInfo, ALLOCATOR, &swapchain) != VK_SUCCESS)
+    {
+        ERR("Failed to create/recreate swapchain");
+    }
+    if (oldSwapchain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR(device, oldSwapchain, ALLOCATOR);
+    }
+    return swapchain;
+}
 void Application::terminate()
 {
+    vkDestroySwapchainKHR(device, swapchain, ALLOCATOR);
     vkDestroyDevice(device, ALLOCATOR);
     vkDestroySurfaceKHR(vkInstance, surface, ALLOCATOR);
     vkDestroyInstance(vkInstance, ALLOCATOR);

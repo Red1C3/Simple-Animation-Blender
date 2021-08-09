@@ -14,7 +14,10 @@ private:
     VkInstance vkInstance;
     VkPhysicalDevice physicalDevice;
     VkSurfaceKHR surface;
+    VkSurfaceCapabilitiesKHR surfaceCapabilities;
+    VkSurfaceFormatKHR surfaceFormat;
     VkDevice device;
+    VkSwapchainKHR swapchain;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -26,6 +29,7 @@ private:
     void createSurface();
     void createQueuesFamilies();
     void createLogicalDevice();
+    VkSwapchainKHR createSwapchain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
 
 public:
     static Application &instance();
