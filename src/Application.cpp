@@ -14,12 +14,15 @@ void Application::init(char *meshPath)
     createWindow(720, 1280);
     createVkInstance();
     createPhysicalDevice();
+    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
     createSurface();
     createQueuesFamilies();
     createLogicalDevice();
     swapchain = createSwapchain();
     createCommandPool();
     createDescriptorPool();
+    createRenderPass();
+    createFramebuffer();
 }
 void Application::createWindow(int height, int width)
 {
@@ -261,8 +264,117 @@ void Application::createDescriptorPool()
         ERR("Failed to create descriptor pool");
     }
 }
+void Application::createRenderPass()
+{
+    VkAttachmentDescription attachmentDescriptions[2];
+    attachmentDescriptions[0].flags = 0;
+    attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+    attachmentDescriptions[0].format = surfaceFormat.format;
+    attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    attachmentDescriptions[1].flags = 0;
+    attachmentDescriptions[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    attachmentDescriptions[1].format = VK_FORMAT_D24_UNORM_S8_UINT;
+    attachmentDescriptions[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    attachmentDescriptions[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    attachmentDescriptions[1].samples = VK_SAMPLE_COUNT_1_BIT;
+    attachmentDescriptions[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    attachmentDescriptions[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    attachmentDescriptions[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    VkAttachmentReference attachmentReferences[2];
+    attachmentReferences[0].attachment = 0;
+    attachmentReferences[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    attachmentReferences[1].attachment = 1;
+    attachmentReferences[1].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+    VkSubpassDescription subPassDescription{};
+    subPassDescription.colorAttachmentCount = 1;
+    subPassDescription.inputAttachmentCount = 0;
+    subPassDescription.pColorAttachments = &attachmentReferences[0];
+    subPassDescription.pDepthStencilAttachment = &attachmentReferences[1];
+    subPassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subPassDescription.preserveAttachmentCount = 0;
+    subPassDescription.pResolveAttachments = nullptr;
+    VkRenderPassCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    createInfo.attachmentCount = 2;
+    createInfo.pAttachments = attachmentDescriptions;
+    createInfo.dependencyCount = 0;
+    createInfo.pSubpasses = &subPassDescription;
+    createInfo.subpassCount = 1;
+    if (vkCreateRenderPass(device, &createInfo, ALLOCATOR, &renderPass) != VK_SUCCESS)
+    {
+        ERR("Failed to create render pass");
+    }
+}
+void Application::createFramebuffer()
+{
+    int height, width;
+    glfwGetFramebufferSize(window, &width, &height);
+    VkImageCreateInfo depthImgCreateInfo{};
+    depthImgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    depthImgCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+    depthImgCreateInfo.format = VK_FORMAT_D24_UNORM_S8_UINT;
+    depthImgCreateInfo.extent.depth = 1;
+    depthImgCreateInfo.extent.height = height;
+    depthImgCreateInfo.extent.width = width;
+    depthImgCreateInfo.mipLevels = 1;
+    depthImgCreateInfo.arrayLayers = 1;
+    depthImgCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+    depthImgCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+    depthImgCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    depthImgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    depthImgCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    if (vkCreateImage(device, &depthImgCreateInfo, ALLOCATOR, &(framebuffer.depthImg)) != VK_SUCCESS)
+    {
+        ERR("Failed to create depth image");
+    }
+    VkMemoryRequirements memReq;
+    vkGetImageMemoryRequirements(device, framebuffer.depthImg, &memReq);
+    framebuffer.depthImgMemory = allocateMemory(memReq, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (vkBindImageMemory(device, framebuffer.depthImg, framebuffer.depthImgMemory, 0) != VK_SUCCESS)
+    {
+        ERR("Failed to bind depth img with allocated memory");
+    }
+}
+VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties)
+{
+    uint32_t memoryIndex;
+    for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+    {
+        const uint32_t memoryBits = (1 << i);
+        const bool isRequiredMemType = memReq.memoryTypeBits & memoryBits;
+        const VkMemoryPropertyFlags propFlags = memoryProperties.memoryTypes[i].propertyFlags;
+        const bool hasRequiredProperties = (propFlags & properties) == properties;
+        if (isRequiredMemType && hasRequiredProperties)
+        {
+            memoryIndex = i;
+            break;
+        }
+        else if (i == memoryProperties.memoryTypeCount - 1)
+        {
+            ERR("Couldn't find a suitable memory type for an allocation");
+        }
+    }
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.allocationSize = memReq.size;
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.memoryTypeIndex = memoryIndex;
+    VkDeviceMemory deviceMemory;
+    if (vkAllocateMemory(device, &allocInfo, ALLOCATOR, &deviceMemory) != VK_SUCCESS)
+    {
+        ERR("Failed to allocate memory");
+    }
+    return deviceMemory;
+}
 void Application::terminate()
 {
+    vkDestroyImage(device, framebuffer.depthImg, ALLOCATOR);
+    vkFreeMemory(device, framebuffer.depthImgMemory, ALLOCATOR);
+    vkDestroyRenderPass(device, renderPass, ALLOCATOR);
     vkDestroyDescriptorPool(device, descriptorPool, ALLOCATOR);
     vkDestroyCommandPool(device, cmdPool, ALLOCATOR);
     vkDestroySwapchainKHR(device, swapchain, ALLOCATOR);

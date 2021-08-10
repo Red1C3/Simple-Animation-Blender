@@ -6,6 +6,13 @@
 #include <simple-animation-blender/Logger.h>
 #define STR VK_STRUCTURE_TYPE
 #define ALLOCATOR nullptr
+struct Framebuffer
+{
+    VkFramebuffer vkHandle;
+    VkImageView swapchainImgView, depthImgView;
+    VkImage depthImg;
+    VkDeviceMemory depthImgMemory;
+};
 class Application
 {
 private:
@@ -13,6 +20,7 @@ private:
     GLFWwindow *window;
     VkInstance vkInstance;
     VkPhysicalDevice physicalDevice;
+    VkPhysicalDeviceMemoryProperties memoryProperties;
     VkSurfaceKHR surface;
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
     VkSurfaceFormatKHR surfaceFormat;
@@ -20,6 +28,8 @@ private:
     VkSwapchainKHR swapchain;
     VkCommandPool cmdPool;
     VkDescriptorPool descriptorPool;
+    VkRenderPass renderPass;
+    Framebuffer framebuffer;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -34,6 +44,9 @@ private:
     VkSwapchainKHR createSwapchain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
     void createCommandPool();
     void createDescriptorPool();
+    void createRenderPass();
+    void createFramebuffer();
+    VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
 
 public:
     static Application &instance();
