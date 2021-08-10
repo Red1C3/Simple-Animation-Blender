@@ -18,6 +18,8 @@ private:
     VkSurfaceFormatKHR surfaceFormat;
     VkDevice device;
     VkSwapchainKHR swapchain;
+    VkCommandPool cmdPool;
+    VkDescriptorPool descriptorPool;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -30,6 +32,8 @@ private:
     void createQueuesFamilies();
     void createLogicalDevice();
     VkSwapchainKHR createSwapchain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
+    void createCommandPool();
+    void createDescriptorPool();
 
 public:
     static Application &instance();

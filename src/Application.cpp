@@ -18,8 +18,8 @@ void Application::init(char *meshPath)
     createQueuesFamilies();
     createLogicalDevice();
     swapchain = createSwapchain();
-    //TODO create command pool
-    //TODO create descriptor pool
+    createCommandPool();
+    createDescriptorPool();
 }
 void Application::createWindow(int height, int width)
 {
@@ -224,8 +224,47 @@ VkSwapchainKHR Application::createSwapchain(VkSwapchainKHR oldSwapchain)
     }
     return swapchain;
 }
+void Application::createCommandPool()
+{
+    VkCommandPoolCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    createInfo.queueFamilyIndex = graphicsQueueFamilyIndex;
+    createInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    if (vkCreateCommandPool(device, &createInfo, ALLOCATOR, &cmdPool) != VK_SUCCESS)
+    {
+        ERR("Failed to create command pool");
+    }
+}
+void Application::createDescriptorPool()
+{
+    VkDescriptorPoolCreateInfo createInfo{};
+    VkDescriptorPoolSize poolSizes[] =
+        {
+            {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+            {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+            {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+            {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+            {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+            {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+            {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+            {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    createInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    createInfo.maxSets = 1000 * 11;
+    createInfo.poolSizeCount = 11;
+    createInfo.pPoolSizes = poolSizes;
+    if (vkCreateDescriptorPool(device, &createInfo, ALLOCATOR, &descriptorPool) != VK_SUCCESS)
+    {
+        ERR("Failed to create descriptor pool");
+    }
+}
 void Application::terminate()
 {
+    vkDestroyDescriptorPool(device, descriptorPool, ALLOCATOR);
+    vkDestroyCommandPool(device, cmdPool, ALLOCATOR);
     vkDestroySwapchainKHR(device, swapchain, ALLOCATOR);
     vkDestroyDevice(device, ALLOCATOR);
     vkDestroySurfaceKHR(vkInstance, surface, ALLOCATOR);
