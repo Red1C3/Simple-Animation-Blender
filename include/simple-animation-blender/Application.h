@@ -6,16 +6,17 @@
 #include <simple-animation-blender/Logger.h>
 #define STR VK_STRUCTURE_TYPE
 #define ALLOCATOR nullptr
-struct Framebuffer
-{
-    VkFramebuffer vkHandle;
-    VkImageView swapchainImgView, depthImgView;
-    VkImage depthImg;
-    VkDeviceMemory depthImgMemory;
-};
+
 class Application
 {
 private:
+    struct Framebuffer
+    {
+        VkFramebuffer vkHandle;
+        VkImageView swapchainImgView, depthImgView;
+        VkImage depthImg;
+        VkDeviceMemory depthImgMemory;
+    };
     int fbHeight, fbWidth;
     char *meshPath;
     GLFWwindow *window;
@@ -31,6 +32,8 @@ private:
     VkDescriptorPool descriptorPool;
     VkRenderPass renderPass;
     std::vector<Framebuffer> framebuffers;
+    VkDescriptorSetLayout dsl;
+    VkPipelineLayout pipelineLayout;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -47,6 +50,8 @@ private:
     void createDescriptorPool();
     void createRenderPass();
     void createFramebuffers();
+    void createDescriptorSetLayout();
+    void createPipelineLayout();
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
 
 public:

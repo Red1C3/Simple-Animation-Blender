@@ -23,6 +23,8 @@ void Application::init(char *meshPath)
     createDescriptorPool();
     createRenderPass();
     createFramebuffers();
+    createDescriptorSetLayout();
+    createPipelineLayout();
 }
 void Application::createWindow(int height, int width)
 {
@@ -400,6 +402,34 @@ void Application::createFramebuffers()
         }
     }
 }
+void Application::createDescriptorSetLayout()
+{
+    VkDescriptorSetLayoutBinding binding{};
+    binding.binding = 0;
+    binding.descriptorCount = 1;
+    binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+    VkDescriptorSetLayoutCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    createInfo.bindingCount = 1;
+    createInfo.pBindings = &binding;
+    if (vkCreateDescriptorSetLayout(device, &createInfo, ALLOCATOR, &dsl) != VK_SUCCESS)
+    {
+        ERR("Failed to create descriptor set layout");
+    }
+}
+void Application::createPipelineLayout()
+{
+    VkPipelineLayoutCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    createInfo.setLayoutCount = 1;
+    createInfo.pSetLayouts = &dsl;
+    createInfo.pushConstantRangeCount = 0;
+    if (vkCreatePipelineLayout(device, &createInfo, ALLOCATOR, &pipelineLayout) != VK_SUCCESS)
+    {
+        ERR("Failed to create pipeline layout");
+    }
+}
 VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties)
 {
     uint32_t memoryIndex;
@@ -432,6 +462,8 @@ VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemory
 }
 void Application::terminate()
 {
+    vkDestroyPipelineLayout(device, pipelineLayout, ALLOCATOR);
+    vkDestroyDescriptorSetLayout(device, dsl, ALLOCATOR);
     for (uint32_t i = 0; i < framebuffers.size(); ++i)
     {
         vkDestroyFramebuffer(device, framebuffers[i].vkHandle, ALLOCATOR);
