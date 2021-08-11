@@ -16,6 +16,7 @@ struct Framebuffer
 class Application
 {
 private:
+    int fbHeight, fbWidth;
     char *meshPath;
     GLFWwindow *window;
     VkInstance vkInstance;
@@ -29,7 +30,7 @@ private:
     VkCommandPool cmdPool;
     VkDescriptorPool descriptorPool;
     VkRenderPass renderPass;
-    Framebuffer framebuffer;
+    std::vector<Framebuffer> framebuffers;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -45,7 +46,7 @@ private:
     void createCommandPool();
     void createDescriptorPool();
     void createRenderPass();
-    void createFramebuffer();
+    void createFramebuffers();
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
 
 public:

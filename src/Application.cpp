@@ -22,10 +22,11 @@ void Application::init(char *meshPath)
     createCommandPool();
     createDescriptorPool();
     createRenderPass();
-    createFramebuffer();
+    createFramebuffers();
 }
 void Application::createWindow(int height, int width)
 {
+
     if (glfwInit() != GLFW_TRUE)
     {
         ERR("Failed to init GLFW");
@@ -34,6 +35,7 @@ void Application::createWindow(int height, int width)
     window = glfwCreateWindow(width, height, "Simple-Animation-Blender", nullptr, nullptr);
     if (window == nullptr)
         ERR("Failed to create window");
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     LOG("Created window successfully");
 }
 void Application::createVkInstance()
@@ -310,17 +312,23 @@ void Application::createRenderPass()
         ERR("Failed to create render pass");
     }
 }
-void Application::createFramebuffer()
+void Application::createFramebuffers()
 {
-    int height, width;
-    glfwGetFramebufferSize(window, &width, &height);
+    uint32_t swapchainImagesCount;
+    vkGetSwapchainImagesKHR(device, swapchain, &swapchainImagesCount, nullptr);
+    vector<VkImage> swapchainImages(swapchainImagesCount);
+    if (vkGetSwapchainImagesKHR(device, swapchain, &swapchainImagesCount, swapchainImages.data()) != VK_SUCCESS)
+    {
+        ERR("Failed to get swapchain images");
+    }
+    framebuffers.resize(swapchainImagesCount);
     VkImageCreateInfo depthImgCreateInfo{};
     depthImgCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     depthImgCreateInfo.imageType = VK_IMAGE_TYPE_2D;
     depthImgCreateInfo.format = VK_FORMAT_D24_UNORM_S8_UINT;
     depthImgCreateInfo.extent.depth = 1;
-    depthImgCreateInfo.extent.height = height;
-    depthImgCreateInfo.extent.width = width;
+    depthImgCreateInfo.extent.height = fbHeight;
+    depthImgCreateInfo.extent.width = fbWidth;
     depthImgCreateInfo.mipLevels = 1;
     depthImgCreateInfo.arrayLayers = 1;
     depthImgCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -328,16 +336,68 @@ void Application::createFramebuffer()
     depthImgCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     depthImgCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     depthImgCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    if (vkCreateImage(device, &depthImgCreateInfo, ALLOCATOR, &(framebuffer.depthImg)) != VK_SUCCESS)
+    for (uint32_t i = 0; i < framebuffers.size(); ++i)
     {
-        ERR("Failed to create depth image");
-    }
-    VkMemoryRequirements memReq;
-    vkGetImageMemoryRequirements(device, framebuffer.depthImg, &memReq);
-    framebuffer.depthImgMemory = allocateMemory(memReq, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-    if (vkBindImageMemory(device, framebuffer.depthImg, framebuffer.depthImgMemory, 0) != VK_SUCCESS)
-    {
-        ERR("Failed to bind depth img with allocated memory");
+        if (vkCreateImage(device, &depthImgCreateInfo, ALLOCATOR, &(framebuffers[i].depthImg)) != VK_SUCCESS)
+        {
+            ERR(FORMAT("Failed to create depth img for {} framebuffer", i));
+        }
+        VkMemoryRequirements memReq;
+        vkGetImageMemoryRequirements(device, framebuffers[i].depthImg, &memReq);
+        framebuffers[i].depthImgMemory = allocateMemory(memReq, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        if (vkBindImageMemory(device, framebuffers[i].depthImg, framebuffers[i].depthImgMemory, 0) != VK_SUCCESS)
+        {
+            ERR(FORMAT("Failed to bind depth image with allocated memory for {} framebuffer", i));
+        }
+        VkImageViewCreateInfo depthImgViewCI{};
+        depthImgViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        depthImgViewCI.image = framebuffers[i].depthImg;
+        depthImgViewCI.components = {VK_COMPONENT_SWIZZLE_IDENTITY,
+                                     VK_COMPONENT_SWIZZLE_IDENTITY,
+                                     VK_COMPONENT_SWIZZLE_IDENTITY,
+                                     VK_COMPONENT_SWIZZLE_IDENTITY};
+        depthImgViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        depthImgViewCI.format = VK_FORMAT_D24_UNORM_S8_UINT;
+        depthImgViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depthImgViewCI.subresourceRange.baseArrayLayer = 0;
+        depthImgViewCI.subresourceRange.baseMipLevel = 0;
+        depthImgViewCI.subresourceRange.layerCount = 1;
+        depthImgViewCI.subresourceRange.levelCount = 1;
+        if (vkCreateImageView(device, &depthImgViewCI, ALLOCATOR, &(framebuffers[i].depthImgView)) != VK_SUCCESS)
+        {
+            ERR(FORMAT("Failed to create depth image view for {} framebuffer", i));
+        }
+        VkImageViewCreateInfo swapchainImgViewCI{};
+        swapchainImgViewCI.components = {VK_COMPONENT_SWIZZLE_IDENTITY,
+                                         VK_COMPONENT_SWIZZLE_IDENTITY,
+                                         VK_COMPONENT_SWIZZLE_IDENTITY,
+                                         VK_COMPONENT_SWIZZLE_IDENTITY};
+        swapchainImgViewCI.format = surfaceFormat.format;
+        swapchainImgViewCI.image = swapchainImages[i];
+        swapchainImgViewCI.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        swapchainImgViewCI.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        swapchainImgViewCI.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        swapchainImgViewCI.subresourceRange.baseArrayLayer = 0;
+        swapchainImgViewCI.subresourceRange.baseMipLevel = 0;
+        swapchainImgViewCI.subresourceRange.layerCount = 1;
+        swapchainImgViewCI.subresourceRange.levelCount = 1;
+        if (vkCreateImageView(device, &swapchainImgViewCI, ALLOCATOR, &(framebuffers[i].swapchainImgView)) != VK_SUCCESS)
+        {
+            ERR(FORMAT("Failed to create swapchain img view for {} framebuffer", i));
+        }
+        VkImageView attachments[2] = {framebuffers[i].swapchainImgView, framebuffers[i].depthImgView};
+        VkFramebufferCreateInfo createInfo{};
+        createInfo.attachmentCount = 2;
+        createInfo.height = fbHeight;
+        createInfo.layers = 1;
+        createInfo.pAttachments = attachments;
+        createInfo.renderPass = renderPass;
+        createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        createInfo.width = fbWidth;
+        if (vkCreateFramebuffer(device, &createInfo, ALLOCATOR, &(framebuffers[i].vkHandle)) != VK_SUCCESS)
+        {
+            ERR(FORMAT("Failed to created {}th framebuffer", i));
+        }
     }
 }
 VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties)
@@ -372,8 +432,14 @@ VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemory
 }
 void Application::terminate()
 {
-    vkDestroyImage(device, framebuffer.depthImg, ALLOCATOR);
-    vkFreeMemory(device, framebuffer.depthImgMemory, ALLOCATOR);
+    for (uint32_t i = 0; i < framebuffers.size(); ++i)
+    {
+        vkDestroyFramebuffer(device, framebuffers[i].vkHandle, ALLOCATOR);
+        vkDestroyImageView(device, framebuffers[i].swapchainImgView, ALLOCATOR);
+        vkDestroyImageView(device, framebuffers[i].depthImgView, ALLOCATOR);
+        vkDestroyImage(device, framebuffers[i].depthImg, ALLOCATOR);
+        vkFreeMemory(device, framebuffers[i].depthImgMemory, ALLOCATOR);
+    }
     vkDestroyRenderPass(device, renderPass, ALLOCATOR);
     vkDestroyDescriptorPool(device, descriptorPool, ALLOCATOR);
     vkDestroyCommandPool(device, cmdPool, ALLOCATOR);
