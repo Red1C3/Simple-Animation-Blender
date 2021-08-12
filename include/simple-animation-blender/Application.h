@@ -1,8 +1,10 @@
 #pragma once
 #include <vector>
+#include <fstream>
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.hpp>
+#include <glm/glm.hpp>
 #include <simple-animation-blender/Logger.h>
 #define STR VK_STRUCTURE_TYPE
 #define ALLOCATOR nullptr
@@ -34,6 +36,7 @@ private:
     std::vector<Framebuffer> framebuffers;
     VkDescriptorSetLayout dsl;
     VkPipelineLayout pipelineLayout;
+    VkPipeline pipeline;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -52,7 +55,9 @@ private:
     void createFramebuffers();
     void createDescriptorSetLayout();
     void createPipelineLayout();
+    void createPipeline();
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
+    std::vector<char> readBin(const char *path);
 
 public:
     static Application &instance();
