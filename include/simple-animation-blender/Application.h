@@ -39,6 +39,7 @@ private:
     VkDescriptorSetLayout dsl;
     VkPipelineLayout pipelineLayout;
     VkPipeline pipeline;
+    VkQueue graphicsQueue;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -58,6 +59,7 @@ private:
     void createDescriptorSetLayout();
     void createPipelineLayout();
     void createPipeline();
+    void createVertexBuffer();
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
     std::vector<char> readBin(const char *path);
 

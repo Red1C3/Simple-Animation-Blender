@@ -47,11 +47,12 @@ Mesh::Mesh(const char *path)
     indices.resize(mesh->mNumFaces * 3);
     for (uint32_t i = 0; i < indices.size(); i += 3)
     {
-        indices[i] = mesh->mFaces[i / 3].mIndices[0];
+        indices[i + 0] = mesh->mFaces[i / 3].mIndices[0];
         indices[i + 1] = mesh->mFaces[i / 3].mIndices[1];
         indices[i + 2] = mesh->mFaces[i / 3].mIndices[2];
     }
+
     //TODO import animations as well
-    LOG("Imported vertices data successfully");
+    LOG("Imported vertices & indices data successfully");
     importer.FreeScene();
 }
