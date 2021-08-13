@@ -17,7 +17,7 @@ private:
     };
 
 public:
-    std::vector<Vertex> vertcies;
-    std::vector<uint16_t> indcies;
+    std::vector<Vertex> vertices;
+    std::vector<uint16_t> indices;
     Mesh(const char *path);
 };
