@@ -27,6 +27,7 @@ void Application::init(char *meshPath)
     createDescriptorSetLayout();
     createPipelineLayout();
     createPipeline();
+    mesh = new Mesh(meshPath);
 }
 void Application::createWindow(int height, int width)
 {
@@ -626,5 +627,6 @@ void Application::terminate()
     vkDestroyInstance(vkInstance, ALLOCATOR);
     glfwDestroyWindow(window);
     glfwTerminate();
+    delete mesh;
     LOG("Application exited successfully");
 }

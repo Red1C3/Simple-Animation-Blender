@@ -6,6 +6,7 @@
 #include <vulkan/vulkan.hpp>
 #include <glm/glm.hpp>
 #include <simple-animation-blender/Logger.h>
+#include <simple-animation-blender/Mesh.h>
 #define STR VK_STRUCTURE_TYPE
 #define ALLOCATOR nullptr
 
@@ -21,6 +22,7 @@ private:
     };
     int fbHeight, fbWidth;
     char *meshPath;
+    Mesh *mesh;
     GLFWwindow *window;
     VkInstance vkInstance;
     VkPhysicalDevice physicalDevice;
