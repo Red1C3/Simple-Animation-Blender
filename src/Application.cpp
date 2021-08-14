@@ -31,8 +31,9 @@ void Application::init(char *meshPath)
     createVertexBuffer();
     createIndexBuffer();
     createUniformBuffer();
+    createCommandBuffers();
     allocateDescriptorSet();
-    //TODO create cmd buffer
+    recordCommandBuffers();
     //TODO update ubo before render
 }
 void Application::createWindow(int height, int width)
@@ -744,6 +745,55 @@ void Application::createUniformBuffer()
         ERR("Failed to bind uniform buffer memory");
     }
 }
+void Application::createCommandBuffers()
+{
+    cmdBuffers.resize(framebuffers.size());
+    VkCommandBufferAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = cmdPool;
+    allocInfo.commandBufferCount = framebuffers.size();
+    if (vkAllocateCommandBuffers(device, &allocInfo, cmdBuffers.data()) != VK_SUCCESS)
+    {
+        ERR("Failed to allocate command buffers");
+    }
+}
+void Application::recordCommandBuffers()
+{
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    for (uint32_t i = 0; i < cmdBuffers.size(); ++i)
+    {
+        VkRenderPassBeginInfo rpBeginInfo{};
+        rpBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+        rpBeginInfo.renderPass = renderPass;
+        rpBeginInfo.framebuffer = framebuffers[i].vkHandle;
+        rpBeginInfo.clearValueCount = 2;
+        VkClearValue clearValues[2];
+        clearValues[0].color = {1, 1, 1, 1};
+        clearValues[1].depthStencil.depth = 1.0f;
+        rpBeginInfo.pClearValues = clearValues;
+        rpBeginInfo.renderArea.extent.height = fbHeight;
+        rpBeginInfo.renderArea.extent.width = fbWidth;
+        rpBeginInfo.renderArea.offset = {0, 0};
+        VkDeviceSize offsets = 0;
+        if (vkBeginCommandBuffer(cmdBuffers[i], &beginInfo) != VK_SUCCESS)
+        {
+            ERR(FORMAT("Failed to create cmd buffer {}", i));
+        }
+        vkCmdBeginRenderPass(cmdBuffers[i], &rpBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        vkCmdBindVertexBuffers(cmdBuffers[i], 0, 1, &(mesh->vertexBuffer), &offsets);
+        vkCmdBindIndexBuffer(cmdBuffers[i], mesh->indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindDescriptorSets(cmdBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &(mesh->descriptorSet), 0, nullptr);
+        vkCmdDrawIndexed(cmdBuffers[i], mesh->indices.size(), 1, 0, 0, 0);
+        vkCmdEndRenderPass(cmdBuffers[i]);
+        if (vkEndCommandBuffer(cmdBuffers[i]) != VK_SUCCESS)
+        {
+            ERR(FORMAT("Failed to record cmd buffer {}", i));
+        }
+    }
+}
 void Application::allocateDescriptorSet()
 {
     VkDescriptorSetAllocateInfo allocInfo{};
@@ -755,6 +805,18 @@ void Application::allocateDescriptorSet()
     {
         ERR("Failed to allocate descriptor set");
     }
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = mesh->uniformBuffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = VK_WHOLE_SIZE;
+    VkWriteDescriptorSet writeDS{};
+    writeDS.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writeDS.dstSet = mesh->descriptorSet;
+    writeDS.dstBinding = 0;
+    writeDS.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    writeDS.descriptorCount = 1;
+    writeDS.pBufferInfo = &bufferInfo;
+    vkUpdateDescriptorSets(device, 1, &writeDS, 0, VK_NULL_HANDLE);
 }
 void Application::updateUBO(Mesh::UBO &ubo)
 {

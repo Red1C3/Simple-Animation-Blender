@@ -40,6 +40,7 @@ private:
     VkPipelineLayout pipelineLayout;
     VkPipeline pipeline;
     VkQueue graphicsQueue;
+    std::vector<VkCommandBuffer> cmdBuffers;
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -62,6 +63,8 @@ private:
     void createVertexBuffer();
     void createIndexBuffer();
     void createUniformBuffer();
+    void createCommandBuffers();
+    void recordCommandBuffers();
     void allocateDescriptorSet();
     void updateUBO(Mesh::UBO &ubo);
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
