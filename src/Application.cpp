@@ -29,6 +29,7 @@ void Application::init(char *meshPath)
     createPipeline();
     mesh = new Mesh(meshPath);
     createVertexBuffer();
+    createIndexBuffer();
 }
 void Application::createWindow(int height, int width)
 {
@@ -640,6 +641,85 @@ void Application::createVertexBuffer()
     vkFreeMemory(device, stagingBufferMem, ALLOCATOR);
     vkFreeCommandBuffers(device, cmdPool, 1, &copyBuffer);
 }
+void Application::createIndexBuffer()
+{
+    VkBufferCreateInfo stagingBufferCI{};
+    stagingBufferCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    stagingBufferCI.size = mesh->indices.size() * sizeof(uint16_t);
+    stagingBufferCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    stagingBufferCI.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VkBuffer stagingBuffer;
+    if (vkCreateBuffer(device, &stagingBufferCI, ALLOCATOR, &stagingBuffer) != VK_SUCCESS)
+    {
+        ERR("Failed to create index staging buffer");
+    }
+    VkMemoryRequirements memReq;
+    vkGetBufferMemoryRequirements(device, stagingBuffer, &memReq);
+    VkDeviceMemory stagingBufferMem = allocateMemory(memReq, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    if (vkBindBufferMemory(device, stagingBuffer, stagingBufferMem, 0) != VK_SUCCESS)
+    {
+        ERR("Failed to bind index staging buffer memory");
+    }
+    void *data;
+    if (vkMapMemory(device, stagingBufferMem, 0, VK_WHOLE_SIZE, 0, &data) != VK_SUCCESS)
+    {
+        ERR("Failed to map staging index buffer memory");
+    }
+    memcpy(data, mesh->indices.data(), mesh->indices.size() * sizeof(uint16_t));
+    vkUnmapMemory(device, stagingBufferMem);
+    VkBufferCreateInfo indexBufferCI = stagingBufferCI;
+    indexBufferCI.usage = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    if (vkCreateBuffer(device, &indexBufferCI, ALLOCATOR, &(mesh->indexBuffer)) != VK_SUCCESS)
+    {
+        ERR("Failed to create index buffer");
+    }
+    vkGetBufferMemoryRequirements(device, mesh->indexBuffer, &memReq);
+    mesh->indexBufferMem = allocateMemory(memReq, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (vkBindBufferMemory(device, mesh->indexBuffer, mesh->indexBufferMem, 0) != VK_SUCCESS)
+    {
+        ERR("Failed to bind index buffer memory");
+    }
+    VkCommandBufferAllocateInfo cmdBufferAI{};
+    cmdBufferAI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmdBufferAI.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmdBufferAI.commandPool = cmdPool;
+    cmdBufferAI.commandBufferCount = 1;
+    VkCommandBuffer copyBuffer;
+    if (vkAllocateCommandBuffers(device, &cmdBufferAI, &copyBuffer) != VK_SUCCESS)
+    {
+        ERR("Failed to allocate copy cmd buffer");
+    }
+    VkCommandBufferBeginInfo cmdBufferBI{};
+    cmdBufferBI.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmdBufferBI.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    if (vkBeginCommandBuffer(copyBuffer, &cmdBufferBI) != VK_SUCCESS)
+    {
+        ERR("Failed to begin copy cmd buffer");
+    }
+    VkBufferCopy copyRegion{};
+    copyRegion.size = mesh->indices.size() * sizeof(uint16_t);
+    vkCmdCopyBuffer(copyBuffer, stagingBuffer, mesh->indexBuffer, 1, &copyRegion);
+    if (vkEndCommandBuffer(copyBuffer) != VK_SUCCESS)
+    {
+        ERR("Failed to end copy cmd buffer");
+    }
+    VkSubmitInfo submitInfo{};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &copyBuffer;
+    if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE) != VK_SUCCESS)
+    {
+        ERR("Failed to submit vertex buffers copying");
+    }
+    if (vkQueueWaitIdle(graphicsQueue) != VK_SUCCESS)
+    {
+        ERR("Failed to wait for graphics queue to finish");
+    }
+
+    vkDestroyBuffer(device, stagingBuffer, ALLOCATOR);
+    vkFreeMemory(device, stagingBufferMem, ALLOCATOR);
+    vkFreeCommandBuffers(device, cmdPool, 1, &copyBuffer);
+}
 VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties)
 {
     uint32_t memoryIndex;
@@ -688,6 +768,8 @@ vector<char> Application::readBin(const char *path)
 }
 void Application::terminate()
 {
+    vkDestroyBuffer(device, mesh->indexBuffer, ALLOCATOR);
+    vkFreeMemory(device, mesh->indexBufferMem, ALLOCATOR);
     vkDestroyBuffer(device, mesh->vertexBuffer, ALLOCATOR);
     vkFreeMemory(device, mesh->vertexBufferMem, ALLOCATOR);
     vkDestroyPipeline(device, pipeline, ALLOCATOR);

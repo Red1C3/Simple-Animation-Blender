@@ -48,8 +48,9 @@ private:
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
     std::vector<Animation> animations;
-    VkBuffer vertexBuffer;
-    VkDeviceMemory vertexBufferMem;
+    VkBuffer vertexBuffer, indexBuffer;
+    VkDeviceMemory vertexBufferMem, indexBufferMem;
+
 public:
     Mesh(const char *path);
     friend class Application;

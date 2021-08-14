@@ -60,6 +60,7 @@ private:
     void createPipelineLayout();
     void createPipeline();
     void createVertexBuffer();
+    void createIndexBuffer();
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
     std::vector<char> readBin(const char *path);
 
