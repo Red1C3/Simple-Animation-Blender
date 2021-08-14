@@ -46,6 +46,7 @@ private:
     bool sameQueueForGraphicsAndPresent = false;
     bool debug = true; //TODO false on release
     Application();
+
     void createWindow(int height, int width);
     void createVkInstance();
     void createPhysicalDevice();
@@ -73,5 +74,6 @@ private:
 public:
     static Application &instance();
     void init(char *meshPath);
+    void mainLoop();
     void terminate();
 };
