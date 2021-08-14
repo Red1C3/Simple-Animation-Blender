@@ -63,6 +63,7 @@ private:
     void createIndexBuffer();
     void createUniformBuffer();
     void allocateDescriptorSet();
+    void updateUBO(Mesh::UBO &ubo);
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
     std::vector<char> readBin(const char *path);
 

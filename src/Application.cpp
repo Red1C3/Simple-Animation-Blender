@@ -32,6 +32,8 @@ void Application::init(char *meshPath)
     createIndexBuffer();
     createUniformBuffer();
     allocateDescriptorSet();
+    //TODO create cmd buffer
+    //TODO update ubo before render
 }
 void Application::createWindow(int height, int width)
 {
@@ -753,6 +755,16 @@ void Application::allocateDescriptorSet()
     {
         ERR("Failed to allocate descriptor set");
     }
+}
+void Application::updateUBO(Mesh::UBO &ubo)
+{
+    void *data;
+    if (vkMapMemory(device, mesh->uniformBufferMem, 0, VK_WHOLE_SIZE, 0, &data) != VK_SUCCESS)
+    {
+        ERR("Failed to map uniform buffer memory");
+    }
+    memcpy(data, &ubo, sizeof(ubo));
+    vkUnmapMemory(device, mesh->uniformBufferMem);
 }
 VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties)
 {
