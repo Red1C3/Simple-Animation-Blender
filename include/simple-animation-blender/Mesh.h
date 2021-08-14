@@ -45,11 +45,18 @@ private:
         glm::ivec3 bonesIndices = glm::ivec3(-1, -1, -1);
         glm::vec3 weights = glm::vec3(0, 0, 0);
     };
+    struct UBO
+    {
+        glm::mat4 bones[50];
+        glm::mat4 MVP;
+        glm::vec3 color;
+    };
     std::vector<Vertex> vertices;
     std::vector<uint16_t> indices;
     std::vector<Animation> animations;
-    VkBuffer vertexBuffer, indexBuffer;
-    VkDeviceMemory vertexBufferMem, indexBufferMem;
+    VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
+    VkDeviceMemory vertexBufferMem, indexBufferMem, uniformBufferMem;
+    VkDescriptorSet descriptorSet;
 
 public:
     Mesh(const char *path);

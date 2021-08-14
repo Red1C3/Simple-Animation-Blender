@@ -30,6 +30,8 @@ void Application::init(char *meshPath)
     mesh = new Mesh(meshPath);
     createVertexBuffer();
     createIndexBuffer();
+    createUniformBuffer();
+    allocateDescriptorSet();
 }
 void Application::createWindow(int height, int width)
 {
@@ -39,6 +41,7 @@ void Application::createWindow(int height, int width)
         ERR("Failed to init GLFW");
     }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
     window = glfwCreateWindow(width, height, "Simple-Animation-Blender", nullptr, nullptr);
     if (window == nullptr)
         ERR("Failed to create window");
@@ -720,6 +723,37 @@ void Application::createIndexBuffer()
     vkFreeMemory(device, stagingBufferMem, ALLOCATOR);
     vkFreeCommandBuffers(device, cmdPool, 1, &copyBuffer);
 }
+void Application::createUniformBuffer()
+{
+    VkBufferCreateInfo createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    createInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    createInfo.size = sizeof(Mesh::UBO);
+    createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    if (vkCreateBuffer(device, &createInfo, ALLOCATOR, &(mesh->uniformBuffer)) != VK_SUCCESS)
+    {
+        ERR("Failed to create uniform buffer");
+    }
+    VkMemoryRequirements memReq;
+    vkGetBufferMemoryRequirements(device, mesh->uniformBuffer, &memReq);
+    mesh->uniformBufferMem = allocateMemory(memReq, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    if (vkBindBufferMemory(device, mesh->uniformBuffer, mesh->uniformBufferMem, 0) != VK_SUCCESS)
+    {
+        ERR("Failed to bind uniform buffer memory");
+    }
+}
+void Application::allocateDescriptorSet()
+{
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = descriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &dsl;
+    if (vkAllocateDescriptorSets(device, &allocInfo, &(mesh->descriptorSet)) != VK_SUCCESS)
+    {
+        ERR("Failed to allocate descriptor set");
+    }
+}
 VkDeviceMemory Application::allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties)
 {
     uint32_t memoryIndex;
@@ -768,6 +802,8 @@ vector<char> Application::readBin(const char *path)
 }
 void Application::terminate()
 {
+    vkDestroyBuffer(device, mesh->uniformBuffer, ALLOCATOR);
+    vkFreeMemory(device, mesh->uniformBufferMem, ALLOCATOR);
     vkDestroyBuffer(device, mesh->indexBuffer, ALLOCATOR);
     vkFreeMemory(device, mesh->indexBufferMem, ALLOCATOR);
     vkDestroyBuffer(device, mesh->vertexBuffer, ALLOCATOR);

@@ -61,6 +61,8 @@ private:
     void createPipeline();
     void createVertexBuffer();
     void createIndexBuffer();
+    void createUniformBuffer();
+    void allocateDescriptorSet();
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
     std::vector<char> readBin(const char *path);
 
