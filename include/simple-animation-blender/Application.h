@@ -23,6 +23,8 @@ private:
     int fbHeight, fbWidth;
     char *meshPath;
     Mesh *mesh;
+    float zoom = 10.0f;
+    glm::mat4 persp, clip;
     GLFWwindow *window;
     VkInstance vkInstance;
     VkPhysicalDevice physicalDevice;
@@ -75,5 +77,6 @@ public:
     static Application &instance();
     void init(char *meshPath);
     void mainLoop();
+    static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void terminate();
 };

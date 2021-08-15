@@ -57,6 +57,7 @@ private:
     VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
     VkDeviceMemory vertexBufferMem, indexBufferMem, uniformBufferMem;
     VkDescriptorSet descriptorSet;
+    UBO ubo;
 
 public:
     Mesh(const char *path);

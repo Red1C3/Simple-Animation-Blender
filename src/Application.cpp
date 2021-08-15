@@ -1,6 +1,21 @@
 #include <simple-animation-blender/Application.h>
 using namespace std;
 using namespace glm;
+void Application::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
+{
+    if ((key == GLFW_KEY_KP_ADD || key == GLFW_KEY_KP_SUBTRACT) && action == GLFW_PRESS)
+    {
+        if (key == GLFW_KEY_KP_SUBTRACT)
+            Application::instance().zoom++;
+        else
+            Application::instance().zoom--;
+        mat4 view = lookAt(vec3{Application::instance().zoom, Application::instance().zoom, Application::instance().zoom}, vec3{0, 0, 0}, vec3{0, 1, 0});
+        Application::instance().mesh->ubo.MVP = Application::instance().clip *
+                                                Application::instance().persp *
+                                                view;
+        Application::instance().updateUBO(Application::instance().mesh->ubo);
+    }
+}
 Application::Application()
 {
 }
@@ -34,18 +49,19 @@ void Application::init(char *meshPath)
     createCommandBuffers();
     allocateDescriptorSet();
     Mesh::UBO intialUBO{};
-    mat4 view = lookAt(vec3{10, 10, 10}, vec3{0, 0, 0}, vec3{0, 1, 0});
-    mat4 persp = perspective(45.0f, (float)fbWidth / (float)fbHeight, 0.0f, 100.0f);
-    mat4 clip = mat4(1.0f, 0.0f, 0.0f, 0.0f,
-                     0.0f, -1.0f, 0.0f, 0.0f,
-                     0.0f, 0.0f, 0.5f, 0.0f,
-                     0.0f, 0.0f, 0.5f, 1.0f);
+    mat4 view = lookAt(vec3{zoom, zoom, zoom}, vec3{0, 0, 0}, vec3{0, 1, 0});
+    persp = perspective(45.0f, (float)fbWidth / (float)fbHeight, 0.0f, 100.0f);
+    clip = mat4(1.0f, 0.0f, 0.0f, 0.0f,
+                0.0f, -1.0f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.5f, 0.0f,
+                0.0f, 0.0f, 0.5f, 1.0f);
     intialUBO.MVP = clip * persp * view;
     intialUBO.color = vec3(1, 0, 0);
     for (uint32_t i = 0; i < 50; ++i)
         intialUBO.bones[i] = mat4(1.0f);
     updateUBO(intialUBO);
     recordCommandBuffers();
+    glfwSetKeyCallback(window, Application::keyCallback);
 }
 void Application::mainLoop()
 {
@@ -893,6 +909,7 @@ void Application::allocateDescriptorSet()
 }
 void Application::updateUBO(Mesh::UBO &ubo)
 {
+    mesh->ubo = ubo;
     void *data;
     if (vkMapMemory(device, mesh->uniformBufferMem, 0, VK_WHOLE_SIZE, 0, &data) != VK_SUCCESS)
     {
