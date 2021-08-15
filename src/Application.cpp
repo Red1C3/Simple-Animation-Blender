@@ -33,8 +33,19 @@ void Application::init(char *meshPath)
     createUniformBuffer();
     createCommandBuffers();
     allocateDescriptorSet();
+    Mesh::UBO intialUBO{};
+    mat4 view = lookAt(vec3{10, 10, 10}, vec3{0, 0, 0}, vec3{0, 1, 0});
+    mat4 persp = perspective(45.0f, (float)fbWidth / (float)fbHeight, 0.0f, 100.0f);
+    mat4 clip = mat4(1.0f, 0.0f, 0.0f, 0.0f,
+                     0.0f, -1.0f, 0.0f, 0.0f,
+                     0.0f, 0.0f, 0.5f, 0.0f,
+                     0.0f, 0.0f, 0.5f, 1.0f);
+    intialUBO.MVP = clip * persp * view;
+    intialUBO.color = vec3(1, 0, 0);
+    for (uint32_t i = 0; i < 50; ++i)
+        intialUBO.bones[i] = mat4(1.0f);
+    updateUBO(intialUBO);
     recordCommandBuffers();
-    //TODO update ubo before render
 }
 void Application::mainLoop()
 {
@@ -832,7 +843,7 @@ void Application::recordCommandBuffers()
         rpBeginInfo.framebuffer = framebuffers[i].vkHandle;
         rpBeginInfo.clearValueCount = 2;
         VkClearValue clearValues[2];
-        clearValues[0].color = {1, 1, 1, 1};
+        clearValues[0].color = {0.25f, 0.25f, 0.25f, 1};
         clearValues[1].depthStencil.depth = 1.0f;
         rpBeginInfo.pClearValues = clearValues;
         rpBeginInfo.renderArea.extent.height = fbHeight;
