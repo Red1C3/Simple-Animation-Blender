@@ -52,14 +52,14 @@ private:
         glm::vec3 color;
     };
     std::vector<Vertex> vertices;
-    std::vector<uint16_t> indices;
     std::vector<Animation> animations;
-    VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
     VkDeviceMemory vertexBufferMem, indexBufferMem, uniformBufferMem;
-    VkDescriptorSet descriptorSet;
     UBO ubo;
 
 public:
     Mesh(const char *path);
+    std::vector<uint16_t> indices;
+    VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
+    VkDescriptorSet descriptorSet;
     friend class Application;
 };

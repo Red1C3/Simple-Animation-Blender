@@ -2,3 +2,4 @@ builddir
 .vscode
 log.txt
 Assets/lpc.glb
+imgui.ini

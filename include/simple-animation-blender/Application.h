@@ -20,29 +20,18 @@ private:
         VkImage depthImg;
         VkDeviceMemory depthImgMemory;
     };
-    int fbHeight, fbWidth;
     char *meshPath;
-    Mesh *mesh;
     float zoom = 10.0f;
     glm::mat4 persp, clip;
-    GLFWwindow *window;
     VkInstance vkInstance;
     VkPhysicalDevice physicalDevice;
     VkPhysicalDeviceMemoryProperties memoryProperties;
     VkSurfaceKHR surface;
     VkSurfaceCapabilitiesKHR surfaceCapabilities;
     VkSurfaceFormatKHR surfaceFormat;
-    VkDevice device;
-    VkSwapchainKHR swapchain;
-    VkCommandPool cmdPool;
     VkDescriptorPool descriptorPool;
-    VkRenderPass renderPass;
-    std::vector<Framebuffer> framebuffers;
     VkDescriptorSetLayout dsl;
-    VkPipelineLayout pipelineLayout;
-    VkPipeline pipeline;
-    VkQueue graphicsQueue;
-    std::vector<VkCommandBuffer> cmdBuffers;
+
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
@@ -74,9 +63,22 @@ private:
     std::vector<char> readBin(const char *path);
 
 public:
+    int fbHeight, fbWidth;
+    GLFWwindow *window;
+    Mesh *mesh;
+    VkDevice device;
+    VkCommandPool cmdPool;
+    VkRenderPass renderPass;
+    VkSwapchainKHR swapchain;
+    std::vector<VkCommandBuffer> cmdBuffers;
+    VkQueue graphicsQueue;
+    VkPipelineLayout pipelineLayout;
+    VkPipeline pipeline;
+    std::vector<Framebuffer> framebuffers;
     static Application &instance();
     void init(char *meshPath);
     void mainLoop();
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void terminate();
+    friend class GUI;
 };

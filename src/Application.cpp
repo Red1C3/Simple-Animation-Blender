@@ -60,7 +60,6 @@ void Application::init(char *meshPath)
     for (uint32_t i = 0; i < 50; ++i)
         intialUBO.bones[i] = mat4(1.0f);
     updateUBO(intialUBO);
-    recordCommandBuffers();
     glfwSetKeyCallback(window, Application::keyCallback);
 }
 void Application::mainLoop()
