@@ -8,6 +8,7 @@ int main(int argc, char **argv)
     }
     Application::instance().init(argv[1]);
     GUI::instance().init();
+    float colorHolder[3] = {1.0f, 0.0f, 0.0f};
     {
         VkSemaphore acquireSemaphore{};
         VkSemaphoreCreateInfo semaphoreCreateInfo{};
@@ -29,14 +30,17 @@ int main(int argc, char **argv)
         {
             ERR("Failed to create semaphore");
         }
-        bool showDemo = true;
         while (!glfwWindowShouldClose(Application::instance().window))
         {
             glfwPollEvents();
+            GUI::instance().updateColor(colorHolder);
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
-            ImGui::ShowDemoWindow(&showDemo);
+            ImGui::Begin("Simple Animation Blender");
+            ImGui::ColorEdit3("Mesh Color", colorHolder);
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+            ImGui::End();
             ImGui::Render();
             ImDrawData *imGuiDrawData = ImGui::GetDrawData();
 

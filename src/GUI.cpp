@@ -1,4 +1,5 @@
 #include <simple-animation-blender/GUI.h>
+using namespace glm;
 GUI::GUI() {}
 GUI &GUI::instance()
 {
@@ -58,6 +59,15 @@ void GUI::init()
         }
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }
+}
+void GUI::updateColor(float newColor[3])
+{
+    vec3 currentColor = Application::instance().mesh->ubo.color;
+    if (currentColor.r == newColor[0] && currentColor.g == newColor[1] && currentColor.b == newColor[2])
+        return;
+    currentColor = vec3(newColor[0], newColor[1], newColor[2]);
+    Application::instance().mesh->ubo.color = currentColor;
+    Application::instance().updateUBO(Application::instance().mesh->ubo);
 }
 void GUI::terminate()
 {

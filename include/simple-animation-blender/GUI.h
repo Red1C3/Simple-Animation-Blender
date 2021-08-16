@@ -13,6 +13,7 @@ private:
 
 public:
     void init();
+    void updateColor(float newColor[3]);
     void terminate();
     static GUI &instance();
 };

@@ -54,10 +54,11 @@ private:
     std::vector<Vertex> vertices;
     std::vector<Animation> animations;
     VkDeviceMemory vertexBufferMem, indexBufferMem, uniformBufferMem;
-    UBO ubo;
+    
 
 public:
     Mesh(const char *path);
+    UBO ubo;
     std::vector<uint16_t> indices;
     VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
     VkDescriptorSet descriptorSet;
