@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <vector>
+#include <map>
 #include <simple-animation-blender/Logger.h>
 #include <vulkan/vulkan.hpp>
 class Mesh
@@ -35,7 +36,7 @@ private:
     struct Animation
     {
         std::vector<Channel> channels;
-        double duration;
+        double duration, ticksPerSecond;
         std::string name;
     };
     struct Vertex
@@ -54,7 +55,6 @@ private:
     std::vector<Vertex> vertices;
     std::vector<Animation> animations;
     VkDeviceMemory vertexBufferMem, indexBufferMem, uniformBufferMem;
-    
 
 public:
     Mesh(const char *path);
