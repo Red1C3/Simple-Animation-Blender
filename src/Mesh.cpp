@@ -4,10 +4,8 @@ using namespace glm;
 using namespace std;
 Mesh::Mesh(const char *path)
 {
-    Importer importer;
     const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate);
     aiMesh *mesh = scene->mMeshes[0];
-    map<string, int> bones;
     vertices.resize(mesh->mNumVertices);
     for (uint32_t i = 0; i < vertices.size(); ++i)
     {
@@ -20,9 +18,12 @@ Mesh::Mesh(const char *path)
             mesh->mNormals[i].y,
             mesh->mNormals[i].z);
     }
+    bonesOffsets.resize(mesh->mNumBones);
+    finalTransforms.resize(mesh->mNumBones);
     for (uint32_t i = 0; i < mesh->mNumBones; ++i)
     {
         bones.insert({mesh->mBones[i]->mName.data, i});
+        bonesOffsets[i] = assimpToGlm(mesh->mBones[i]->mOffsetMatrix);
         for (uint32_t j = 0; j < mesh->mBones[i]->mNumWeights; ++j)
         {
             int vertexID = mesh->mBones[i]->mWeights[j].mVertexId;
@@ -91,6 +92,16 @@ Mesh::Mesh(const char *path)
             }
         }
     }
+    globalInverseTransform = assimpToGlm(scene->mRootNode->mTransformation);
+    globalInverseTransform = inverse(globalInverseTransform);
+    rootNode = scene->mRootNode;
     LOG("Imported vertices & indices & animation data successfully");
+}
+mat4 Mesh::assimpToGlm(aiMatrix4x4 matrix)
+{
+    return *((mat4 *)&matrix.Transpose());
+}
+Mesh::~Mesh()
+{
     importer.FreeScene();
 }

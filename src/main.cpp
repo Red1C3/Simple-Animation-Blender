@@ -1,5 +1,7 @@
 #include <simple-animation-blender/Application.h>
 #include <simple-animation-blender/GUI.h>
+#include <simple-animation-blender/Animator.h>
+#include <GLFW/glfw3.h>
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -8,6 +10,8 @@ int main(int argc, char **argv)
     }
     Application::instance().init(argv[1]);
     GUI::instance().init();
+    Animator::instance().init(Application::instance().mesh);
+    Animator::instance().play("Forward");
     float colorHolder[3] = {1.0f, 0.0f, 0.0f};
     {
         VkSemaphore acquireSemaphore{};
@@ -33,6 +37,7 @@ int main(int argc, char **argv)
         while (!glfwWindowShouldClose(Application::instance().window))
         {
             glfwPollEvents();
+            Animator::instance().animate(glfwGetTime());
             GUI::instance().updateColor(colorHolder);
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();

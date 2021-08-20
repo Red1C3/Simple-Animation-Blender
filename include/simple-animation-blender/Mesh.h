@@ -54,13 +54,22 @@ private:
     };
     std::vector<Vertex> vertices;
     std::vector<Animation> animations;
+    std::vector<glm::mat4> bonesOffsets;
+    glm::mat4 globalInverseTransform;
+    std::map<std::string, int> bones;
+    std::vector<glm::mat4> finalTransforms;
+    const aiNode *rootNode;
+    Assimp::Importer importer;
     VkDeviceMemory vertexBufferMem, indexBufferMem, uniformBufferMem;
 
 public:
     Mesh(const char *path);
+    ~Mesh();
     UBO ubo;
     std::vector<uint16_t> indices;
     VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
     VkDescriptorSet descriptorSet;
+    static glm::mat4 assimpToGlm(aiMatrix4x4 matrix);
     friend class Application;
+    friend class Animator;
 };
