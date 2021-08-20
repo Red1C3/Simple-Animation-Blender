@@ -18,34 +18,57 @@ void Animator::play(string animation)
     {
         if (mesh->animations[i].name == animation)
         {
-            playingAnimation = mesh->animations[i];
+            playingAnimationOne = mesh->animations[i];
             isPlaying = true;
             break;
         }
     }
 }
+void Animator::play(string firstAnim, string secondAnim, float blendingFactor)
+{
+    for (uint32_t i = 0; i < mesh->animations.size(); ++i)
+    {
+        if (mesh->animations[i].name == firstAnim)
+        {
+            playingAnimationOne = mesh->animations[i];
+        }
+        if (mesh->animations[i].name == secondAnim)
+        {
+            playingAnimationTwo = mesh->animations[i];
+        }
+    }
+    this->blendingFactor = blendingFactor;
+    isPlaying = true;
+}
 void Animator::animate(double timeSinceStart)
 {
     if (!isPlaying)
         return;
-    double ticksPerSecond = playingAnimation.ticksPerSecond != 0 ? playingAnimation.ticksPerSecond : 25.0;
+    double ticksPerSecond = playingAnimationOne.ticksPerSecond != 0 ? playingAnimationOne.ticksPerSecond : 25.0;
     double timeInTicks = timeSinceStart * ticksPerSecond;
-    animationTime = fmod(timeInTicks * 100.0, playingAnimation.duration);
-    updateMeshNodes(mesh->rootNode, mat4(1.0f));
-    for (uint32_t i = 0; i < mesh->bonesOffsets.size(); ++i)
+    animationTime = fmod(timeInTicks * 100.0, playingAnimationOne.duration);
+    if (blendingFactor == -1)
     {
-        mesh->ubo.bones[i] = mesh->finalTransforms[i];
+        updateMeshNodes(mesh->rootNode, mat4(1.0f));
+        for (uint32_t i = 0; i < mesh->bonesOffsets.size(); ++i)
+        {
+            mesh->ubo.bones[i] = mesh->finalTransforms[i];
+        }
+        Application::instance().updateUBO(mesh->ubo);
     }
-    Application::instance().updateUBO(mesh->ubo);
+    else
+    {
+        //TODO
+    }
 }
 void Animator::updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransform)
 {
     string nodeName(node->mName.data);
     mat4 nodeTransform = Mesh::assimpToGlm(node->mTransformation);
     int channelIdx = -1;
-    for (uint32_t i = 0; i < playingAnimation.channels.size(); ++i)
+    for (uint32_t i = 0; i < playingAnimationOne.channels.size(); ++i)
     {
-        if (playingAnimation.channels[i].boneIndex == mesh->bones[nodeName])
+        if (playingAnimationOne.channels[i].boneIndex == mesh->bones[nodeName])
         {
             channelIdx = i;
             break;
@@ -53,9 +76,14 @@ void Animator::updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransf
     }
     if (channelIdx != -1)
     {
-        mat4 traMat = interpolatePos(playingAnimation.channels[channelIdx]);
-        mat4 rotMat = interpolateRot(playingAnimation.channels[channelIdx]);
-        mat4 scaMat = interpolateSca(playingAnimation.channels[channelIdx]);
+        mat4 traMat = translate(mat4(1.0f), interpolatePos(playingAnimationOne.channels[channelIdx]));
+        mat4 scaMat = scale(mat4(1.0f), interpolateSca(playingAnimationOne.channels[channelIdx]));
+        aiQuaternion rotAssimp = interpolateRot(playingAnimationOne.channels[channelIdx]);
+        quat rotGLM(rotAssimp.w,
+                    rotAssimp.x,
+                    rotAssimp.y,
+                    rotAssimp.z);
+        mat4 rotMat = mat4(rotGLM);
         nodeTransform = traMat * rotMat * scaMat;
     }
     mat4 globalTransform = parentTransform * nodeTransform;
@@ -69,11 +97,11 @@ void Animator::updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransf
         updateMeshNodes(node->mChildren[i], globalTransform);
     }
 }
-mat4 Animator::interpolatePos(Mesh::Channel channel)
+vec3 Animator::interpolatePos(Mesh::Channel channel)
 {
     if (channel.posKeys.size() == 1)
     {
-        return translate(mat4(1.0f), channel.posKeys[0].pos);
+        return channel.posKeys[0].pos;
     }
     int posIndex = getKeyIndex(channel.posKeys, channel);
     int nxtPosIndex = posIndex + 1;
@@ -81,13 +109,16 @@ mat4 Animator::interpolatePos(Mesh::Channel channel)
     float factor = (animationTime - channel.posKeys[posIndex].time) / deltaTime;
     vec3 interpolated = (1 - factor) * channel.posKeys[posIndex].pos +
                         factor * channel.posKeys[nxtPosIndex].pos;
-    return translate(mat4(1.0f), interpolated);
+    return interpolated;
 }
-mat4 Animator::interpolateRot(Mesh::Channel channel)
+aiQuaternion Animator::interpolateRot(Mesh::Channel channel)
 {
     if (channel.rotKeys.size() == 1)
     {
-        return mat4(channel.rotKeys[0].rot);
+        return aiQuaternion(channel.rotKeys[0].rot.w,
+                            channel.rotKeys[0].rot.x,
+                            channel.rotKeys[0].rot.y,
+                            channel.rotKeys[0].rot.z);
     }
     int rotIndex = getKeyIndex(channel.rotKeys, channel);
     int nxtRotIndex = rotIndex + 1;
@@ -106,17 +137,13 @@ mat4 Animator::interpolateRot(Mesh::Channel channel)
     aiQuaternion interpolatedAssimp;
     aiQuaternion::Interpolate(interpolatedAssimp, startQuatAssimp, endQuatAssimp, factor);
     interpolatedAssimp = interpolatedAssimp.Normalize();
-    quat interpolatedGLM(interpolatedAssimp.w,
-                         interpolatedAssimp.x,
-                         interpolatedAssimp.y,
-                         interpolatedAssimp.z);
-    return mat4(interpolatedGLM);
+    return interpolatedAssimp;
 }
-mat4 Animator::interpolateSca(Mesh::Channel channel)
+vec3 Animator::interpolateSca(Mesh::Channel channel)
 {
     if (channel.scaKeys.size() == 1)
     {
-        return translate(mat4(1.0f), channel.scaKeys[0].sca);
+        return channel.scaKeys[0].sca;
     }
     int scaIndex = getKeyIndex(channel.scaKeys, channel);
     int nxtScaIndex = scaIndex + 1;
@@ -124,7 +151,7 @@ mat4 Animator::interpolateSca(Mesh::Channel channel)
     float factor = (animationTime - channel.scaKeys[scaIndex].time) / deltaTime;
     vec3 interpolated = (1 - factor) * channel.scaKeys[scaIndex].sca +
                         factor * channel.scaKeys[nxtScaIndex].sca;
-    return scale(mat4(1.0f), interpolated);
+    return interpolated;
 }
 int Animator::getKeyIndex(vector<Mesh::PosKey> keys, Mesh::Channel channel)
 {
