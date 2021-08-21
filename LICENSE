@@ -1,4 +1,4 @@
-/*MIT License
+MIT License
 
 Copyright (c) 2021 Mohammad Issawi
 
@@ -18,27 +18,4 @@ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.*/
-#pragma once
-#include <vector>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_vulkan.h>
-#include <GLFW/glfw3.h>
-#include <vulkan/vulkan.hpp>
-#include <simple-animation-blender/Application.h>
-#include <simple-animation-blender/Animator.h>
-class GUI
-{
-private:
-    GUI();
-    int currentFirstPlayingAnimation, currentSecondPlayingAnimation;
-    float currentBlendingFactor;
-
-public:
-    void init();
-    void updateColor(float newColor[3]);
-    void updateAnimatorData(int firstAnim, int secondAnim, float blendingFactor);
-    void terminate();
-    static GUI &instance();
-};
+SOFTWARE.
