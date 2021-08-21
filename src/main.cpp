@@ -2,6 +2,7 @@
 #include <simple-animation-blender/GUI.h>
 #include <simple-animation-blender/Animator.h>
 #include <GLFW/glfw3.h>
+using namespace std;
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -11,8 +12,16 @@ int main(int argc, char **argv)
     Application::instance().init(argv[1]);
     GUI::instance().init();
     Animator::instance().init(Application::instance().mesh);
-    Animator::instance().play("Forward", "Strafe Right", 0.5f);
     float colorHolder[3] = {1.0f, 0.0f, 0.0f};
+    int firstAnimationHolder = 0, secondAnimationHolder = 0;
+    float blendingFactorHolder = 0.5f;
+    string animationsList("None");
+    animationsList.append(1, '\0');
+    for (uint32_t i = 0; i < Application::instance().mesh->animations.size(); ++i)
+    {
+        animationsList.append(Application::instance().mesh->animations[i].name);
+        animationsList.append(1, '\0');
+    }
     {
         VkSemaphore acquireSemaphore{};
         VkSemaphoreCreateInfo semaphoreCreateInfo{};
@@ -39,10 +48,16 @@ int main(int argc, char **argv)
             glfwPollEvents();
             Animator::instance().animate(glfwGetTime());
             GUI::instance().updateColor(colorHolder);
+            GUI::instance().updateAnimatorData(firstAnimationHolder, secondAnimationHolder, blendingFactorHolder);
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
             ImGui::Begin("Simple Animation Blender");
+            ImGui::Combo("First Animation", &firstAnimationHolder, animationsList.c_str());
+            if (firstAnimationHolder)
+                ImGui::Combo("Second Animation", &secondAnimationHolder, animationsList.c_str());
+            if (secondAnimationHolder)
+                ImGui::SliderFloat("Blending Factor", &blendingFactorHolder, 0.0f, 1.0f, "%.3f", 1.0f);
             ImGui::ColorEdit3("Mesh Color", colorHolder);
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();

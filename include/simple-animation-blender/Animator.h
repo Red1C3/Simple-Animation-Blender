@@ -7,7 +7,6 @@ private:
     Animator();
     Mesh *mesh;
     Mesh::Animation playingAnimationOne, playingAnimationTwo;
-    bool isPlaying = false;
     double animationTime;
     float blendingFactor = -1;
     void updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransform);
@@ -21,6 +20,7 @@ private:
 
 public:
     static Animator &instance();
+    bool isPlaying = false;
     void init(Mesh *mesh);
     void play(std::string animation);
     void play(std::string firstAnim, std::string secondAnim, float blendingFactor);

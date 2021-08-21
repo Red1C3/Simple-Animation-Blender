@@ -69,6 +69,36 @@ void GUI::updateColor(float newColor[3])
     Application::instance().mesh->ubo.color = currentColor;
     Application::instance().updateUBO(Application::instance().mesh->ubo);
 }
+void GUI::updateAnimatorData(int firstAnim, int secondAnim, float blendingFactor)
+{
+    if (firstAnim == currentFirstPlayingAnimation &&
+        secondAnim == currentSecondPlayingAnimation &&
+        currentBlendingFactor == blendingFactor)
+    {
+        return;
+    }
+    else
+    {
+        currentBlendingFactor = blendingFactor;
+        currentFirstPlayingAnimation = firstAnim;
+        currentSecondPlayingAnimation = secondAnim;
+    }
+    if (firstAnim == 0)
+    {
+        Animator::instance().isPlaying = false;
+        return;
+    }
+    if (secondAnim == 0)
+    {
+        Animator::instance().play(Application::instance().mesh->animations[firstAnim - 1].name);
+    }
+    else
+    {
+        Animator::instance().play(Application::instance().mesh->animations[firstAnim - 1].name,
+                                  Application::instance().mesh->animations[secondAnim - 1].name,
+                                  blendingFactor);
+    }
+}
 void GUI::terminate()
 {
     ImGui_ImplVulkan_Shutdown();

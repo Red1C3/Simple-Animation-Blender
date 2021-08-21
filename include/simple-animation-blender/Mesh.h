@@ -53,7 +53,6 @@ private:
         glm::vec3 color;
     };
     std::vector<Vertex> vertices;
-    std::vector<Animation> animations;
     std::vector<glm::mat4> bonesOffsets;
     glm::mat4 globalInverseTransform;
     std::map<std::string, int> bones;
@@ -66,6 +65,7 @@ public:
     Mesh(const char *path);
     ~Mesh();
     UBO ubo;
+    std::vector<Animation> animations;
     std::vector<uint16_t> indices;
     VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
     VkDescriptorSet descriptorSet;
