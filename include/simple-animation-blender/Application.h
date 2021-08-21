@@ -43,6 +43,7 @@ private:
     };
     char *meshPath;
     float zoom = 10.0f;
+    //Mesh transformation matrices
     glm::mat4 persp, clip;
     VkInstance vkInstance;
     VkPhysicalDevice physicalDevice;
@@ -52,13 +53,11 @@ private:
     VkSurfaceFormatKHR surfaceFormat;
     VkDescriptorPool descriptorPool;
     VkDescriptorSetLayout dsl;
-
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
     bool debug = false;
     Application();
-
     void createWindow(int height, int width);
     void createVkInstance();
     void createPhysicalDevice();
@@ -79,11 +78,13 @@ private:
     void createCommandBuffers();
     void recordCommandBuffers();
     void allocateDescriptorSet();
+    //Overwrites Uniform Buffer
     void updateUBO(Mesh::UBO &ubo);
     VkDeviceMemory allocateMemory(VkMemoryRequirements memReq, VkMemoryPropertyFlags properties);
     std::vector<char> readBin(const char *path);
 
 public:
+    //Framebuffer dimensions
     int fbHeight, fbWidth;
     GLFWwindow *window;
     Mesh *mesh;
@@ -98,7 +99,7 @@ public:
     std::vector<Framebuffer> framebuffers;
     static Application &instance();
     void init(char *meshPath);
-    void mainLoop();
+    void mainLoop(); //depracated
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void terminate();
     friend class GUI;

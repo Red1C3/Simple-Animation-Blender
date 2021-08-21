@@ -29,6 +29,7 @@ GUI &GUI::instance()
 }
 void GUI::init()
 {
+    //sets up ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO &io = ImGui::GetIO();

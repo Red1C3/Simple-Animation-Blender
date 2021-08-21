@@ -110,6 +110,7 @@ void Animator::blendMeshNodes(const aiNode *node, const glm::mat4 &parentTransfo
             break;
         }
     }
+    //Gets transformation info from both animations and interpolates them
     if (channelIdxOne != -1 && channelIdxTwo != -1)
     {
         vec3 posOne = interpolatePos(playingAnimationOne.channels[channelIdxOne]);

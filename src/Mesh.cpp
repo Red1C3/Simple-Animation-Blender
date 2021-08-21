@@ -25,6 +25,7 @@ using namespace glm;
 using namespace std;
 Mesh::Mesh(const char *path)
 {
+    //Importing mesh data...
     const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate);
     aiMesh *mesh = scene->mMeshes[0];
     vertices.resize(mesh->mNumVertices);

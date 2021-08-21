@@ -74,9 +74,11 @@ private:
         glm::vec3 color;
     };
     std::vector<Vertex> vertices;
+    //Inverse bind matrices for the bones
     std::vector<glm::mat4> bonesOffsets;
     glm::mat4 globalInverseTransform;
     std::map<std::string, int> bones;
+    //Bones after applying an blended/animation
     std::vector<glm::mat4> finalTransforms;
     const aiNode *rootNode;
     Assimp::Importer importer;
@@ -90,6 +92,7 @@ public:
     std::vector<uint16_t> indices;
     VkBuffer vertexBuffer, indexBuffer, uniformBuffer;
     VkDescriptorSet descriptorSet;
+    //Casts an Assimp matrix into a GLM matrix
     static glm::mat4 assimpToGlm(aiMatrix4x4 matrix);
     friend class Application;
     friend class Animator;

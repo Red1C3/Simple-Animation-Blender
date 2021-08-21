@@ -33,6 +33,7 @@ int main(int argc, char **argv)
     Application::instance().init(argv[1]);
     GUI::instance().init();
     Animator::instance().init(Application::instance().mesh);
+    //GUI values holders
     float colorHolder[3] = {1.0f, 0.0f, 0.0f};
     int firstAnimationHolder = 0, secondAnimationHolder = 0;
     float blendingFactorHolder = 0.5f;
@@ -69,6 +70,8 @@ int main(int argc, char **argv)
             glfwPollEvents();
             GUI::instance().updateColor(colorHolder);
             GUI::instance().updateAnimatorData(firstAnimationHolder, secondAnimationHolder, blendingFactorHolder);
+
+            //ImGui representation info
             ImGui_ImplVulkan_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();

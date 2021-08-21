@@ -30,13 +30,22 @@ private:
     Mesh::Animation playingAnimationOne, playingAnimationTwo;
     double animationTime;
     float blendingFactor = -1;
+    //Updates mesh nodes and bones transformations for a single animation at some time
     void updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransform);
+    //Updates mesh nodes and bones transformations by blending two animations at some time
+    //if both animations are not lengthly equal, the longer one will be considered the blended
+    //animation time and the other will stay in the last key until the animation loops
     void blendMeshNodes(const aiNode *node, const glm::mat4 &parentTransform);
+    //Gets key index at some time for the provided channel
     int getKeyIndex(std::vector<Mesh::PosKey> keys, Mesh::Channel channel);
     int getKeyIndex(std::vector<Mesh::RotKey> keys, Mesh::Channel channel);
     int getKeyIndex(std::vector<Mesh::ScaKey> keys, Mesh::Channel channel);
+    //Lineary interpolates two animation position keys at some time for the provided channel
     glm::vec3 interpolatePos(Mesh::Channel channel);
+    //Uses Assimp interpolating algorithm for interpolating two animation quaternion keys at
+    //some time for the provided channel
     aiQuaternion interpolateRot(Mesh::Channel channel);
+    //Lineary interpolates two animation scale keys at some time for the provided channel
     glm::vec3 interpolateSca(Mesh::Channel channel);
 
 public:
