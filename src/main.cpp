@@ -46,7 +46,6 @@ int main(int argc, char **argv)
         while (!glfwWindowShouldClose(Application::instance().window))
         {
             glfwPollEvents();
-            Animator::instance().animate(glfwGetTime());
             GUI::instance().updateColor(colorHolder);
             GUI::instance().updateAnimatorData(firstAnimationHolder, secondAnimationHolder, blendingFactorHolder);
             ImGui_ImplVulkan_NewFrame();
@@ -56,13 +55,15 @@ int main(int argc, char **argv)
             ImGui::Combo("First Animation", &firstAnimationHolder, animationsList.c_str());
             if (firstAnimationHolder)
                 ImGui::Combo("Second Animation", &secondAnimationHolder, animationsList.c_str());
-            if (secondAnimationHolder)
+            if (firstAnimationHolder && secondAnimationHolder)
                 ImGui::SliderFloat("Blending Factor", &blendingFactorHolder, 0.0f, 1.0f, "%.3f", 1.0f);
             ImGui::ColorEdit3("Mesh Color", colorHolder);
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
             ImGui::Render();
             ImDrawData *imGuiDrawData = ImGui::GetDrawData();
+
+            Animator::instance().animate(glfwGetTime());
 
             vkWaitForFences(Application::instance().device, 1, &fence, VK_TRUE, UINT64_MAX);
 

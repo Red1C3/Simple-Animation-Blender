@@ -10,7 +10,6 @@ Animator &Animator::instance()
 void Animator::init(Mesh *mesh)
 {
     this->mesh = mesh;
-    mesh->ubo.MVP *= translate(mat4(1.0f), vec3(0, 20, 0)) * scale(mat4(1.0f), vec3(3, 3, 3)) * mat4(quat(vec3(0, 2.7f, 0))); //TODO remove
 }
 void Animator::play(string animation)
 {
