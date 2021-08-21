@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     Application::instance().init(argv[1]);
     GUI::instance().init();
     Animator::instance().init(Application::instance().mesh);
-    Animator::instance().play("Forward");
+    Animator::instance().play("Forward", "Strafe Right", 0.5f);
     float colorHolder[3] = {1.0f, 0.0f, 0.0f};
     {
         VkSemaphore acquireSemaphore{};

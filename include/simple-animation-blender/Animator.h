@@ -11,6 +11,7 @@ private:
     double animationTime;
     float blendingFactor = -1;
     void updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransform);
+    void blendMeshNodes(const aiNode *node, const glm::mat4 &parentTransform);
     int getKeyIndex(std::vector<Mesh::PosKey> keys, Mesh::Channel channel);
     int getKeyIndex(std::vector<Mesh::RotKey> keys, Mesh::Channel channel);
     int getKeyIndex(std::vector<Mesh::ScaKey> keys, Mesh::Channel channel);

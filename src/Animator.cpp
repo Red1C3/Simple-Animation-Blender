@@ -20,6 +20,7 @@ void Animator::play(string animation)
         {
             playingAnimationOne = mesh->animations[i];
             isPlaying = true;
+            blendingFactor = -1;
             break;
         }
     }
@@ -46,9 +47,9 @@ void Animator::animate(double timeSinceStart)
         return;
     double ticksPerSecond = playingAnimationOne.ticksPerSecond != 0 ? playingAnimationOne.ticksPerSecond : 25.0;
     double timeInTicks = timeSinceStart * ticksPerSecond;
-    animationTime = fmod(timeInTicks * 100.0, playingAnimationOne.duration);
     if (blendingFactor == -1)
     {
+        animationTime = fmod(timeInTicks * 100.0, playingAnimationOne.duration);
         updateMeshNodes(mesh->rootNode, mat4(1.0f));
         for (uint32_t i = 0; i < mesh->bonesOffsets.size(); ++i)
         {
@@ -58,7 +59,91 @@ void Animator::animate(double timeSinceStart)
     }
     else
     {
-        //TODO
+        animationTime = fmod(timeInTicks * 100.0, std::max(playingAnimationOne.duration,
+                                                           playingAnimationTwo.duration));
+        blendMeshNodes(mesh->rootNode, mat4(1.0f));
+        for (uint32_t i = 0; i < mesh->bonesOffsets.size(); ++i)
+        {
+            mesh->ubo.bones[i] = mesh->finalTransforms[i];
+        }
+        Application::instance().updateUBO(mesh->ubo);
+    }
+}
+void Animator::blendMeshNodes(const aiNode *node, const glm::mat4 &parentTransform)
+{
+    string nodeName(node->mName.data);
+    mat4 nodeTransform = Mesh::assimpToGlm(node->mTransformation);
+    int channelIdxOne = -1, channelIdxTwo = -1;
+    for (uint32_t i = 0; i < playingAnimationOne.channels.size(); ++i)
+    {
+        if (playingAnimationOne.channels[i].boneIndex == mesh->bones[nodeName])
+        {
+            channelIdxOne = i;
+            break;
+        }
+    }
+    for (uint32_t i = 0; i < playingAnimationTwo.channels.size(); ++i)
+    {
+        if (playingAnimationTwo.channels[i].boneIndex == mesh->bones[nodeName])
+        {
+            channelIdxTwo = i;
+            break;
+        }
+    }
+    if (channelIdxOne != -1 && channelIdxTwo != -1)
+    {
+        vec3 posOne = interpolatePos(playingAnimationOne.channels[channelIdxOne]);
+        vec3 posTwo = interpolatePos(playingAnimationTwo.channels[channelIdxTwo]);
+        aiQuaternion rotOne = interpolateRot(playingAnimationOne.channels[channelIdxOne]);
+        aiQuaternion rotTwo = interpolateRot(playingAnimationTwo.channels[channelIdxTwo]);
+        vec3 scaOne = interpolateSca(playingAnimationOne.channels[channelIdxOne]);
+        vec3 scaTwo = interpolateSca(playingAnimationTwo.channels[channelIdxTwo]);
+        vec3 pos = (1 - blendingFactor) * posOne + blendingFactor * posTwo;
+        vec3 sca = (1 - blendingFactor) * scaOne + blendingFactor * scaTwo;
+        aiQuaternion rot(1, 1, 1, 1);
+        aiQuaternion::Interpolate(rot, rotOne, rotTwo, blendingFactor);
+        mat4 traMat = translate(mat4(1.0f), pos);
+        mat4 scaMat = scale(mat4(1.0f), sca);
+        quat rotGLM(rot.w,
+                    rot.x,
+                    rot.y,
+                    rot.z);
+        mat4 rotMat = mat4(rotGLM);
+        nodeTransform = traMat * rotMat * scaMat;
+    }
+    else if (channelIdxOne != -1)
+    {
+        mat4 traMat = translate(mat4(1.0f), interpolatePos(playingAnimationOne.channels[channelIdxOne]));
+        mat4 scaMat = scale(mat4(1.0f), interpolateSca(playingAnimationOne.channels[channelIdxOne]));
+        aiQuaternion rotAssimp = interpolateRot(playingAnimationOne.channels[channelIdxOne]);
+        quat rotGLM(rotAssimp.w,
+                    rotAssimp.x,
+                    rotAssimp.y,
+                    rotAssimp.z);
+        mat4 rotMat = mat4(rotGLM);
+        nodeTransform = traMat * rotMat * scaMat;
+    }
+    else if (channelIdxTwo != -1)
+    {
+        mat4 traMat = translate(mat4(1.0f), interpolatePos(playingAnimationTwo.channels[channelIdxTwo]));
+        mat4 scaMat = scale(mat4(1.0f), interpolateSca(playingAnimationTwo.channels[channelIdxTwo]));
+        aiQuaternion rotAssimp = interpolateRot(playingAnimationTwo.channels[channelIdxTwo]);
+        quat rotGLM(rotAssimp.w,
+                    rotAssimp.x,
+                    rotAssimp.y,
+                    rotAssimp.z);
+        mat4 rotMat = mat4(rotGLM);
+        nodeTransform = traMat * rotMat * scaMat;
+    }
+    mat4 globalTransform = parentTransform * nodeTransform;
+    if (channelIdxOne != -1 || channelIdxTwo != -1)
+    {
+        int boneIndex = mesh->bones[nodeName];
+        mesh->finalTransforms[boneIndex] = mesh->globalInverseTransform * globalTransform * mesh->bonesOffsets[boneIndex];
+    }
+    for (uint32_t i = 0; i < node->mNumChildren; ++i)
+    {
+        blendMeshNodes(node->mChildren[i], globalTransform);
     }
 }
 void Animator::updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransform)
@@ -162,7 +247,7 @@ int Animator::getKeyIndex(vector<Mesh::PosKey> keys, Mesh::Channel channel)
             return i;
         }
     }
-    return -1;
+    return channel.posKeys.size() - 2;
 }
 int Animator::getKeyIndex(vector<Mesh::RotKey> keys, Mesh::Channel channel)
 {
@@ -173,7 +258,7 @@ int Animator::getKeyIndex(vector<Mesh::RotKey> keys, Mesh::Channel channel)
             return i;
         }
     }
-    return -1;
+    return channel.rotKeys.size() - 2;
 }
 int Animator::getKeyIndex(vector<Mesh::ScaKey> keys, Mesh::Channel channel)
 {
@@ -184,5 +269,5 @@ int Animator::getKeyIndex(vector<Mesh::ScaKey> keys, Mesh::Channel channel)
             return i;
         }
     }
-    return -1;
+    return channel.scaKeys.size() - 2;
 }
