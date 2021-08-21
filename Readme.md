@@ -1,11 +1,11 @@
 # Simple-Animation-Blender
 A real-time 1D animation blender and player using Vulkan as graphical backend and ImGui for GUI.
 ## Snapshots
-[](Snapshots/Original%20Animation.png)
+![](Snapshots/Original%20Animation.png)
 
-[](Snapshots/Blending%20by%20half%20as%20a%20factor.png)
+![](Snapshots/Blending%20by%20half%20as%20a%20factor.png)
 
-[](Snapshots/Blending%20to%201%20results%20to%20diseffect%20the%20first%20Animation.png)
+![](Snapshots/Blending%20to%201%20results%20to%20diseffect%20the%20first%20Animation.png)
 ## Usage
 ```
 ./simple-animation-blender "Supported-Mesh-Path"
