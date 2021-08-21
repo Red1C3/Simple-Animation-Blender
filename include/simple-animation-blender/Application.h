@@ -56,7 +56,7 @@ private:
     uint32_t graphicsQueueFamilyIndex, presentQueueFamilyIndex,
         graphicsQueuesCount, presentQueuesCount;
     bool sameQueueForGraphicsAndPresent = false;
-    bool debug = true; //TODO false on release
+    bool debug = false;
     Application();
 
     void createWindow(int height, int width);

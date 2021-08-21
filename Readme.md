@@ -35,6 +35,7 @@ meson builddir
 cd builddir
 ninja
 ```
+*Note: Vulkan Validation Layers are disabled by default, to enable them, turn debug boolean in Application class to true.*
 ## Docs
 Source is Commented
 ## Contributions
