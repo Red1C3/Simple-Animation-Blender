@@ -76,7 +76,6 @@ private:
     std::vector<Vertex> vertices;
     //Inverse bind matrices for the bones
     std::vector<glm::mat4> bonesOffsets;
-    glm::mat4 globalInverseTransform;
     std::map<std::string, int> bones;
     //Bones after applying an blended/animation
     std::vector<glm::mat4> finalTransforms;

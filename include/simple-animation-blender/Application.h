@@ -99,7 +99,6 @@ public:
     std::vector<Framebuffer> framebuffers;
     static Application &instance();
     void init(char *meshPath);
-    void mainLoop(); //depracated
     static void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods);
     void terminate();
     friend class GUI;

@@ -92,7 +92,7 @@ void Animator::animate(double timeSinceStart)
 void Animator::blendMeshNodes(const aiNode *node, const glm::mat4 &parentTransform)
 {
     string nodeName(node->mName.data);
-    mat4 nodeTransform = Mesh::assimpToGlm(node->mTransformation);
+    mat4 nodeTransform = mat4(1.0f);
     int channelIdxOne = -1, channelIdxTwo = -1;
     for (uint32_t i = 0; i < playingAnimationOne.channels.size(); ++i)
     {
@@ -156,21 +156,21 @@ void Animator::blendMeshNodes(const aiNode *node, const glm::mat4 &parentTransfo
         mat4 rotMat = mat4(rotGLM);
         nodeTransform = traMat * rotMat * scaMat;
     }
-    mat4 globalTransform = parentTransform * nodeTransform;
+    mat4 nodeModelTransformation = parentTransform * nodeTransform;
     if (channelIdxOne != -1 || channelIdxTwo != -1)
     {
         int boneIndex = mesh->bones[nodeName];
-        mesh->finalTransforms[boneIndex] = mesh->globalInverseTransform * globalTransform * mesh->bonesOffsets[boneIndex];
+        mesh->finalTransforms[boneIndex] = nodeModelTransformation * mesh->bonesOffsets[boneIndex];
     }
     for (uint32_t i = 0; i < node->mNumChildren; ++i)
     {
-        blendMeshNodes(node->mChildren[i], globalTransform);
+        blendMeshNodes(node->mChildren[i], nodeModelTransformation);
     }
 }
 void Animator::updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransform)
 {
-    string nodeName(node->mName.data);
-    mat4 nodeTransform = Mesh::assimpToGlm(node->mTransformation);
+    string nodeName = node->mName.data;
+    mat4 nodeTransformation = mat4(1.0f);
     int channelIdx = -1;
     for (uint32_t i = 0; i < playingAnimationOne.channels.size(); ++i)
     {
@@ -190,17 +190,18 @@ void Animator::updateMeshNodes(const aiNode *node, const glm::mat4 &parentTransf
                     rotAssimp.y,
                     rotAssimp.z);
         mat4 rotMat = mat4(rotGLM);
-        nodeTransform = traMat * rotMat * scaMat;
+        nodeTransformation = traMat * rotMat * scaMat;
     }
-    mat4 globalTransform = parentTransform * nodeTransform;
+    mat4 nodeModelTransformation = parentTransform * nodeTransformation;
     if (channelIdx != -1)
     {
         int boneIndex = mesh->bones[nodeName];
-        mesh->finalTransforms[boneIndex] = mesh->globalInverseTransform * globalTransform * mesh->bonesOffsets[boneIndex];
+        mesh->finalTransforms[boneIndex] = nodeModelTransformation * mesh->bonesOffsets[boneIndex];
     }
     for (uint32_t i = 0; i < node->mNumChildren; ++i)
     {
-        updateMeshNodes(node->mChildren[i], globalTransform);
+        // hasan is here
+        updateMeshNodes(node->mChildren[i], nodeModelTransformation);
     }
 }
 vec3 Animator::interpolatePos(Mesh::Channel channel)

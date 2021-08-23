@@ -30,7 +30,7 @@ void Application::keyCallback(GLFWwindow *window, int key, int scancode, int act
             Application::instance().zoom++;
         else
             Application::instance().zoom--;
-        mat4 view = lookAt(vec3{Application::instance().zoom, Application::instance().zoom, Application::instance().zoom}, vec3{0, 0, 0}, vec3{0, 1, 0});
+        mat4 view = lookAt(vec3{-Application::instance().zoom, Application::instance().zoom, -Application::instance().zoom}, vec3{0, 0, 0}, vec3{0, 1, 0});
         Application::instance().mesh->ubo.MVP = Application::instance().clip *
                                                 Application::instance().persp *
                                                 view;
@@ -70,7 +70,7 @@ void Application::init(char *meshPath)
     createCommandBuffers();
     allocateDescriptorSet();
     Mesh::UBO intialUBO{};
-    mat4 view = lookAt(vec3{zoom, zoom, zoom}, vec3{0, 0, 0}, vec3{0, 1, 0});
+    mat4 view = lookAt(vec3{-zoom, zoom, -zoom}, vec3{0, 0, 0}, vec3{0, 1, 0});
     persp = perspective(45.0f, (float)fbWidth / (float)fbHeight, 0.0f, 100.0f);
     clip = mat4(1.0f, 0.0f, 0.0f, 0.0f,
                 0.0f, -1.0f, 0.0f, 0.0f,
@@ -82,68 +82,6 @@ void Application::init(char *meshPath)
         intialUBO.bones[i] = mat4(1.0f);
     updateUBO(intialUBO);
     glfwSetKeyCallback(window, Application::keyCallback);
-}
-void Application::mainLoop()
-{
-    VkSemaphore acquireSemaphore{};
-    VkSemaphoreCreateInfo semaphoreCreateInfo{};
-    semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    if (vkCreateSemaphore(Application::instance().device, &semaphoreCreateInfo, ALLOCATOR, &acquireSemaphore) != VK_SUCCESS)
-    {
-        ERR("Failed to create semaphore");
-    }
-    VkFence fence{};
-    VkFenceCreateInfo fenceCreateInfo{};
-    fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-    if (vkCreateFence(Application::instance().device, &fenceCreateInfo, ALLOCATOR, &fence) != VK_SUCCESS)
-    {
-        ERR("Failed to create fence");
-    }
-    VkSemaphore presentSemaphore;
-    if (vkCreateSemaphore(Application::instance().device, &semaphoreCreateInfo, ALLOCATOR, &presentSemaphore) != VK_SUCCESS)
-    {
-        ERR("Failed to create semaphore");
-    }
-    while (!glfwWindowShouldClose(Application::instance().window))
-    {
-        glfwPollEvents();
-        vkWaitForFences(Application::instance().device, 1, &fence, VK_TRUE, UINT64_MAX);
-        uint32_t imageIndex;
-        vkAcquireNextImageKHR(Application::instance().device, Application::instance().swapchain, 0, acquireSemaphore, VK_NULL_HANDLE, &imageIndex);
-        VkSubmitInfo submitInfo{};
-        submitInfo.commandBufferCount = 1;
-        VkCommandBuffer cmdBuffer = Application::instance().cmdBuffers[imageIndex];
-        submitInfo.pCommandBuffers = &cmdBuffer;
-        submitInfo.waitSemaphoreCount = 1;
-        submitInfo.pWaitSemaphores = &acquireSemaphore;
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        VkPipelineStageFlags waitStage[] = {VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT};
-        submitInfo.pWaitDstStageMask = waitStage;
-        submitInfo.signalSemaphoreCount = 1;
-        submitInfo.pSignalSemaphores = &presentSemaphore;
-        vkResetFences(Application::instance().device, 1, &fence);
-        if (vkQueueSubmit(Application::instance().graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS)
-        {
-            ERR("Failed to submit graphics render");
-        }
-        VkPresentInfoKHR presentInfo{};
-        presentInfo.pImageIndices = &imageIndex;
-        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-        presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores = &presentSemaphore;
-        presentInfo.swapchainCount = 1;
-        VkSwapchainKHR swapchain = Application::instance().swapchain;
-        presentInfo.pSwapchains = &swapchain;
-        if (vkQueuePresentKHR(Application::instance().graphicsQueue, &presentInfo) != VK_SUCCESS)
-        {
-            ERR("Failed to present to swapchain");
-        }
-    }
-    vkQueueWaitIdle(Application::instance().graphicsQueue);
-    vkDestroyFence(Application::instance().device, fence, ALLOCATOR);
-    vkDestroySemaphore(Application::instance().device, acquireSemaphore, ALLOCATOR);
-    vkDestroySemaphore(Application::instance().device, presentSemaphore, ALLOCATOR);
 }
 void Application::createWindow(int height, int width)
 {

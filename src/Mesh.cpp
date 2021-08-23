@@ -114,8 +114,6 @@ Mesh::Mesh(const char *path)
             }
         }
     }
-    globalInverseTransform = assimpToGlm(scene->mRootNode->mTransformation);
-    globalInverseTransform = inverse(globalInverseTransform);
     rootNode = scene->mRootNode;
     LOG("Imported vertices & indices & animation data successfully");
 }
